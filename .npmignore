@@ -1,0 +1,33 @@
+# Source files (not needed in published package)
+src/
+tsconfig.json
+
+# Development files
+ARCHITECTURE.md
+*.log
+*.test.ts
+*.spec.ts
+
+# Build artifacts (keep dist/)
+*.tsbuildinfo
+
+# Development dependencies
+node_modules/
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Testing
+coverage/
+.nyc_output/
+*.test.js
+*.spec.js
+
