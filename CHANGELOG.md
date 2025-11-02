@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2025-11-02
+
+### Fixed
+- Added fallback to `process.cwd()` when `findProjectRoot()` returns null, preventing FileSync initialization failures
+- Added explicit error handling in `syncEnvFile()` to throw a clear error message if `baseDir` is not set
+
+### Changed
+- Improved error messages for better debugging when project root detection fails
+
 ## [0.1.4] - 2025-01-02
 
 ### Added
