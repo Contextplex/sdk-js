@@ -93,7 +93,7 @@ export class FileSync extends EventEmitter {
     // Auto-detect project root if baseDir not provided
     this.baseDir = options.baseDir
       ? path.resolve(options.baseDir)
-      : findProjectRoot();
+      : findProjectRoot() || process.cwd();
 
     this.client.on("change", this.handleRemoteChange.bind(this));
     this.client.on("error", (error) => this.emit("error", error));
@@ -107,7 +107,11 @@ export class FileSync extends EventEmitter {
    */
   async syncEnvFile(config: EnvFileConfig): Promise<void> {
     // Auto-detect .env file if path not provided
-    const envPath = config.path || (await findEnvFile(this.baseDir)) || ".env";
+    const detectedPath = await findEnvFile(this.baseDir);
+    const envPath = config.path || detectedPath || ".env";
+    if (!this.baseDir) {
+      throw new Error("baseDir is not set. Please provide baseDir in FileSyncOptions or ensure findProjectRoot() returns a valid path.");
+    }
     const filePath = path.resolve(this.baseDir, envPath);
     const prefix = config.prefix || DEFAULT_PREFIXES.ENV;
     const fileKey = `env:${envPath}`;
