@@ -1,6 +1,6 @@
 {
   "name": "@contextplex/sdk-js",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "ContextPlex JavaScript/TypeScript SDK - Realtime state synchronization and file sync for developers",
   "main": "dist/index.js",
   "module": "dist/index.js",
