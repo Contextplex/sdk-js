@@ -90,10 +90,24 @@ export class FileSync extends EventEmitter {
 
     this.client = options.client;
     this.namespace = options.namespace;
-    // Auto-detect project root if baseDir not provided
-    this.baseDir = options.baseDir
-      ? path.resolve(options.baseDir)
-      : findProjectRoot() || process.cwd();
+
+    if (
+      options.baseDir &&
+      typeof options.baseDir === "string" &&
+      options.baseDir.length > 0
+    ) {
+      this.baseDir = path.resolve(options.baseDir);
+    } else {
+      const projectRoot = findProjectRoot();
+      this.baseDir =
+        projectRoot && typeof projectRoot === "string" && projectRoot.length > 0
+          ? projectRoot
+          : process.cwd();
+    }
+
+    if (typeof this.baseDir !== "string" || this.baseDir.length === 0) {
+      this.baseDir = process.cwd();
+    }
 
     this.client.on("change", this.handleRemoteChange.bind(this));
     this.client.on("error", (error) => this.emit("error", error));
@@ -106,14 +120,70 @@ export class FileSync extends EventEmitter {
    * @public
    */
   async syncEnvFile(config: EnvFileConfig): Promise<void> {
-    // Auto-detect .env file if path not provided
-    const detectedPath = await findEnvFile(this.baseDir);
-    const envPath = config.path || detectedPath || ".env";
-    if (!this.baseDir) {
-      throw new Error("baseDir is not set. Please provide baseDir in FileSyncOptions or ensure findProjectRoot() returns a valid path.");
+    let baseDir: string = process.cwd();
+    let envPath: string = ".env";
+
+    if (
+      this.baseDir &&
+      typeof this.baseDir === "string" &&
+      this.baseDir.length > 0
+    ) {
+      baseDir = this.baseDir;
     }
-    const filePath = path.resolve(this.baseDir, envPath);
-    const prefix = config.prefix || DEFAULT_PREFIXES.ENV;
+
+    if (config && typeof config === "object" && "path" in config) {
+      if (
+        config.path &&
+        typeof config.path === "string" &&
+        config.path.length > 0
+      ) {
+        envPath = config.path;
+      }
+    }
+
+    if (envPath === ".env" && (!config || !config.path)) {
+      try {
+        if (typeof baseDir !== "string" || baseDir.length === 0) {
+          baseDir = process.cwd();
+        }
+
+        const detectedPath = await findEnvFile(baseDir);
+        if (
+          detectedPath &&
+          typeof detectedPath === "string" &&
+          detectedPath.length > 0
+        ) {
+          envPath = detectedPath;
+        }
+      } catch (error) {
+        console.log("Error detecting .env file:", error);
+      }
+    }
+
+    if (baseDir !== this.baseDir) {
+      this.baseDir = baseDir;
+    }
+
+    if (typeof baseDir !== "string" || baseDir.length === 0) {
+      throw new Error(
+        `CRITICAL: baseDir invalid: type=${typeof baseDir}, value=${JSON.stringify(baseDir)}, this.baseDir=${JSON.stringify(this.baseDir)}`
+      );
+    }
+    if (typeof envPath !== "string" || envPath.length === 0) {
+      throw new Error(
+        `CRITICAL: envPath invalid: type=${typeof envPath}, value=${JSON.stringify(envPath)}, config=${JSON.stringify(config)}`
+      );
+    }
+
+    const prefix =
+      config &&
+      typeof config === "object" &&
+      "prefix" in config &&
+      config.prefix
+        ? config.prefix
+        : DEFAULT_PREFIXES.ENV;
+
+    const filePath = path.resolve(baseDir, envPath);
     const fileKey = `env:${envPath}`;
 
     this.syncedFiles.set(fileKey, { type: "env", prefix, path: envPath });
@@ -151,7 +221,6 @@ export class FileSync extends EventEmitter {
    * @public
    */
   async syncJsonFile(config: JsonFileConfig): Promise<void> {
-    // Auto-detect JSON file if path not provided
     let jsonPath: string;
     if (config.path) {
       jsonPath = config.path;

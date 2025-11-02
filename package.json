@@ -1,6 +1,6 @@
 {
   "name": "@contextplex/sdk-js",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "ContextPlex JavaScript/TypeScript SDK - Realtime state synchronization and file sync for developers",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -9,8 +9,14 @@
     ".": {
       "import": "./dist/index.js",
       "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
+  },
+  "tsup": {
+    "entry": ["src/index.ts"],
+    "format": ["cjs", "esm"],
+    "dts": true
   },
   "files": [
     "dist",

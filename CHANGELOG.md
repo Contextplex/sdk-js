@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2025-11-02
+
+### Added
+- Added `tsup` configuration for improved build process
+- Added `default` export to package.json exports field for better module compatibility
+- Added `tsconfig.build.json` for separate build-time TypeScript configuration
+
+### Changed
+- Enhanced `FileSync` baseDir validation with comprehensive type checking and defensive programming
+- Improved `syncEnvFile()` error handling with detailed validation and clearer error messages
+- Disabled source maps and declaration maps in production builds for smaller package size
+- Simplified `.npmignore` for cleaner package structure
+
+### Fixed
+- Added try-catch error handling for `.env` file auto-detection to prevent crashes
+- Enhanced type safety with explicit string validation for baseDir and envPath
+- Improved fallback logic when project root detection fails
+
 ## [0.1.5] - 2025-11-02
 
 ### Fixed

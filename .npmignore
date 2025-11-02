@@ -1,33 +1,12 @@
-# Source files (not needed in published package)
+# Exclude source files - only publish dist/
 src/
+*.ts
+!dist/**/*.d.ts
+!dist/**/*.js
+!dist/**/*.map
 tsconfig.json
-
-# Development files
-ARCHITECTURE.md
-*.log
+.eslintrc*
+.prettierrc*
 *.test.ts
 *.spec.ts
-
-# Build artifacts (keep dist/)
-*.tsbuildinfo
-
-# Development dependencies
-node_modules/
-.vscode/
-.idea/
-
-# Git
-.git/
-.gitignore
-
-# CI/CD
-.github/
-.gitlab-ci.yml
-.travis.yml
-
-# Testing
-coverage/
-.nyc_output/
-*.test.js
-*.spec.js
-
+ARCHITECTURE.md
