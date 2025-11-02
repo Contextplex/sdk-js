@@ -3,18 +3,18 @@
  * StateMesh WebSocket Client
  */
 
-import WebSocket from 'ws';
-import { EventEmitter } from 'events';
+import WebSocket from "ws";
+import { EventEmitter } from "events";
 import {
   DEFAULT_SERVER_URL,
   DEFAULT_RECONNECT_CONFIG,
   TIMEOUTS,
-} from '../constants';
+} from "../constants";
 import {
   generateSessionId,
   calculateBackoffDelay,
   parseWebSocketMessages,
-} from '../utils';
+} from "../utils";
 import type {
   StateMeshOptions,
   StateOp,
@@ -22,7 +22,7 @@ import type {
   ChangeEvent,
   StateEvent,
   AckEvent,
-} from '../types';
+} from "../types";
 import type {
   ServerMessage,
   ClientMessage,
@@ -31,14 +31,14 @@ import type {
   AckMessage,
   ErrorMessage,
   SnapshotResponseMessage,
-} from '../dto';
+} from "../dto";
 
 /**
  * StateMesh WebSocket Client
- * 
+ *
  * Manages connection, reconnection, and message protocol with StateMesh server.
  * Emits events for state changes, acknowledgements, and connection status.
- * 
+ *
  * @public
  * @example
  * ```typescript
@@ -46,7 +46,7 @@ import type {
  *   namespace: 'my-project',
  *   apiKey: 'my-api-key'
  * });
- * 
+ *
  * await client.connect();
  * client.on('change', (event) => {
  *   console.log('State changed:', event);
@@ -71,16 +71,20 @@ export class StateMeshClient extends EventEmitter {
    */
   constructor(options: StateMeshOptions) {
     super();
-    
-    this.serverUrl = process.env.STATEMESH_SERVER_URL || DEFAULT_SERVER_URL;
-    
+
+    // Priority: options.serverUrl > STATEMESH_SERVER_URL env var > DEFAULT_SERVER_URL
+    this.serverUrl =
+      options.serverUrl ||
+      process.env.STATEMESH_SERVER_URL ||
+      DEFAULT_SERVER_URL;
+
     if (!options.namespace) {
-      throw new Error('namespace is required');
+      throw new Error("namespace is required");
     }
     if (!options.apiKey) {
-      throw new Error('apiKey is required');
+      throw new Error("apiKey is required");
     }
-    
+
     this.namespace = options.namespace;
     this.apiKey = options.apiKey;
     this.sessionId = generateSessionId();
@@ -96,35 +100,37 @@ export class StateMeshClient extends EventEmitter {
     return new Promise((resolve, reject) => {
       try {
         const url = new URL(this.serverUrl);
-        url.searchParams.set('api_key', this.apiKey);
+        url.searchParams.set("api_key", this.apiKey);
 
         this.ws = new WebSocket(url.toString());
 
-        this.ws.on('open', () => {
+        this.ws.on("open", () => {
           this.reconnectAttempts = 0;
-          this.emit('connected');
+          this.emit("connected");
           this.subscribe(this.namespace);
           resolve();
         });
 
-        this.ws.on('message', (data: WebSocket.Data) => {
+        this.ws.on("message", (data: WebSocket.Data) => {
           try {
-            const messages = parseWebSocketMessages(data.toString()) as ServerMessage[];
+            const messages = parseWebSocketMessages(
+              data.toString()
+            ) as ServerMessage[];
             for (const message of messages) {
               this.handleMessage(message);
             }
           } catch (err) {
-            this.emit('error', err as Error);
+            this.emit("error", err as Error);
           }
         });
 
-        this.ws.on('error', (error) => {
-          this.emit('error', error);
+        this.ws.on("error", (error) => {
+          this.emit("error", error);
           reject(error);
         });
 
-        this.ws.on('close', () => {
-          this.emit('disconnected');
+        this.ws.on("close", () => {
+          this.emit("disconnected");
           this.attemptReconnect();
         });
       } catch (err) {
@@ -139,7 +145,7 @@ export class StateMeshClient extends EventEmitter {
    */
   private async attemptReconnect(): Promise<void> {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.emit('error', new Error('Max reconnection attempts reached'));
+      this.emit("error", new Error("Max reconnection attempts reached"));
       return;
     }
 
@@ -155,7 +161,8 @@ export class StateMeshClient extends EventEmitter {
     try {
       await this.connect();
     } catch {
-      // Will retry on next attempt
+      console.error("Failed to reconnect to StateMesh server");
+      this.emit("error", new Error("Failed to reconnect to StateMesh server"));
     }
   }
 
@@ -166,23 +173,23 @@ export class StateMeshClient extends EventEmitter {
    */
   private handleMessage(message: ServerMessage): void {
     switch (message.type) {
-      case 'broadcast':
+      case "broadcast":
         this.handleBroadcast(message as BroadcastMessage);
         break;
-      case 'state':
+      case "state":
         this.handleState(message as StateMessage);
         break;
-      case 'ack':
+      case "ack":
         this.handleAck(message as AckMessage);
         break;
-      case 'error':
+      case "error":
         this.handleError(message as ErrorMessage);
         break;
-      case 'snapshot_response':
+      case "snapshot_response":
         this.handleSnapshotResponse(message as SnapshotResponseMessage);
         break;
       default:
-        this.emit('message', message);
+        this.emit("message", message);
     }
   }
 
@@ -195,8 +202,8 @@ export class StateMeshClient extends EventEmitter {
     if (message.api_key && message.api_key !== this.apiKey) {
       return;
     }
-    
-    this.emit('change', {
+
+    this.emit("change", {
       namespace: message.namespace,
       ops: message.ops,
     } as ChangeEvent);
@@ -208,7 +215,7 @@ export class StateMeshClient extends EventEmitter {
    * @internal
    */
   private handleState(message: StateMessage): void {
-    this.emit('state', {
+    this.emit("state", {
       namespace: message.namespace,
       state: message.state,
     } as StateEvent);
@@ -220,7 +227,7 @@ export class StateMeshClient extends EventEmitter {
    * @internal
    */
   private handleAck(message: AckMessage): void {
-    this.emit('ack', {
+    this.emit("ack", {
       namespace: message.namespace,
       last_sequence: message.last_sequence,
       success: message.success,
@@ -233,7 +240,7 @@ export class StateMeshClient extends EventEmitter {
    * @internal
    */
   private handleError(message: ErrorMessage): void {
-    this.emit('error', new Error(message.message || 'Unknown error'));
+    this.emit("error", new Error(message.message || "Unknown error"));
   }
 
   /**
@@ -242,7 +249,7 @@ export class StateMeshClient extends EventEmitter {
    * @internal
    */
   private handleSnapshotResponse(message: SnapshotResponseMessage): void {
-    this.emit('message', message);
+    this.emit("message", message);
   }
 
   /**
@@ -256,7 +263,7 @@ export class StateMeshClient extends EventEmitter {
     }
 
     const message: ClientMessage = {
-      type: 'subscribe',
+      type: "subscribe",
       namespace,
     };
 
@@ -271,7 +278,7 @@ export class StateMeshClient extends EventEmitter {
    */
   private sendMessage(message: ClientMessage): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      throw new Error('WebSocket not connected');
+      throw new Error("WebSocket not connected");
     }
     this.ws.send(JSON.stringify(message));
   }
@@ -289,7 +296,7 @@ export class StateMeshClient extends EventEmitter {
     await this.pushOps(namespace, [
       {
         path,
-        op: 'set',
+        op: "set",
         value,
         ts: Date.now() * 1_000_000,
         session_id: this.sessionId,
@@ -310,7 +317,7 @@ export class StateMeshClient extends EventEmitter {
     await this.pushOps(namespace, [
       {
         path,
-        op: 'delete',
+        op: "delete",
         ts: Date.now() * 1_000_000,
         session_id: this.sessionId,
         seq: ++this.sequence,
@@ -328,37 +335,37 @@ export class StateMeshClient extends EventEmitter {
    */
   async pushOps(namespace: string, ops: StateOp[]): Promise<void> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      throw new Error('WebSocket not connected');
+      throw new Error("WebSocket not connected");
     }
 
     return new Promise((resolve, reject) => {
       const message: ClientMessage = {
-        type: 'ops',
+        type: "ops",
         namespace,
         ops,
       };
 
       const ackHandler = (ack: AckEvent) => {
         if (ack.namespace === namespace && ack.success) {
-          this.removeListener('ack', ackHandler);
+          this.removeListener("ack", ackHandler);
           resolve();
         }
       };
 
       const errorHandler = (error: Error) => {
-        this.removeListener('ack', ackHandler);
+        this.removeListener("ack", ackHandler);
         reject(error);
       };
 
-      this.once('ack', ackHandler);
-      this.once('error', errorHandler);
+      this.once("ack", ackHandler);
+      this.once("error", errorHandler);
 
       this.sendMessage(message);
 
       setTimeout(() => {
-        this.removeListener('ack', ackHandler);
-        this.removeListener('error', errorHandler);
-        reject(new Error('Timeout waiting for acknowledgement'));
+        this.removeListener("ack", ackHandler);
+        this.removeListener("error", errorHandler);
+        reject(new Error("Timeout waiting for acknowledgement"));
       }, TIMEOUTS.ACK);
     });
   }
@@ -376,25 +383,25 @@ export class StateMeshClient extends EventEmitter {
 
       const stateHandler = (state: StateEvent) => {
         if (state.namespace === targetNamespace) {
-          this.removeListener('state', stateHandler);
+          this.removeListener("state", stateHandler);
           resolve(state.state);
         }
       };
 
       const errorHandler = (error: Error) => {
-        this.removeListener('state', stateHandler);
+        this.removeListener("state", stateHandler);
         reject(error);
       };
 
-      this.once('state', stateHandler);
-      this.once('error', errorHandler);
+      this.once("state", stateHandler);
+      this.once("error", errorHandler);
 
       this.subscribe(targetNamespace);
 
       setTimeout(() => {
-        this.removeListener('state', stateHandler);
-        this.removeListener('error', errorHandler);
-        reject(new Error('Timeout waiting for state'));
+        this.removeListener("state", stateHandler);
+        this.removeListener("error", errorHandler);
+        reject(new Error("Timeout waiting for state"));
       }, TIMEOUTS.STATE);
     });
   }
@@ -407,39 +414,45 @@ export class StateMeshClient extends EventEmitter {
    * @throws {Error} If WebSocket is not connected or operation times out
    * @public
    */
-  async snapshot(namespace: string, options: SnapshotOptions = {}): Promise<string> {
+  async snapshot(
+    namespace: string,
+    options: SnapshotOptions = {}
+  ): Promise<string> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      throw new Error('WebSocket not connected');
+      throw new Error("WebSocket not connected");
     }
 
     return new Promise((resolve, reject) => {
       const message: ClientMessage = {
-        type: 'snapshot',
+        type: "snapshot",
         namespace,
         ...(options.tag && { tag: options.tag }),
       };
 
       const snapshotHandler = (response: SnapshotResponseMessage) => {
-        if (response.type === 'snapshot_response' && response.namespace === namespace) {
-          this.removeListener('message', snapshotHandler);
+        if (
+          response.type === "snapshot_response" &&
+          response.namespace === namespace
+        ) {
+          this.removeListener("message", snapshotHandler);
           resolve(response.snapshot_id);
         }
       };
 
       const errorHandler = (error: Error) => {
-        this.removeListener('message', snapshotHandler);
+        this.removeListener("message", snapshotHandler);
         reject(error);
       };
 
-      this.once('message', snapshotHandler);
-      this.once('error', errorHandler);
+      this.once("message", snapshotHandler);
+      this.once("error", errorHandler);
 
       this.sendMessage(message);
 
       setTimeout(() => {
-        this.removeListener('message', snapshotHandler);
-        this.removeListener('error', errorHandler);
-        reject(new Error('Timeout waiting for snapshot response'));
+        this.removeListener("message", snapshotHandler);
+        this.removeListener("error", errorHandler);
+        reject(new Error("Timeout waiting for snapshot response"));
       }, TIMEOUTS.SNAPSHOT);
     });
   }
@@ -458,31 +471,31 @@ export class StateMeshClient extends EventEmitter {
   /**
    * Event: 'connected' - Emitted when connection is established
    */
-  on(event: 'connected', listener: () => void): this;
+  on(event: "connected", listener: () => void): this;
   /**
    * Event: 'disconnected' - Emitted when connection is closed
    */
-  on(event: 'disconnected', listener: () => void): this;
+  on(event: "disconnected", listener: () => void): this;
   /**
    * Event: 'change' - Emitted when state changes (from other clients)
    */
-  on(event: 'change', listener: (change: ChangeEvent) => void): this;
+  on(event: "change", listener: (change: ChangeEvent) => void): this;
   /**
    * Event: 'state' - Emitted when receiving state snapshot
    */
-  on(event: 'state', listener: (state: StateEvent) => void): this;
+  on(event: "state", listener: (state: StateEvent) => void): this;
   /**
    * Event: 'ack' - Emitted when operation is acknowledged
    */
-  on(event: 'ack', listener: (ack: AckEvent) => void): this;
+  on(event: "ack", listener: (ack: AckEvent) => void): this;
   /**
    * Event: 'error' - Emitted on errors
    */
-  on(event: 'error', listener: (error: Error) => void): this;
+  on(event: "error", listener: (error: Error) => void): this;
   /**
    * Event: 'message' - Emitted for unhandled messages
    */
-  on(event: 'message', listener: (message: ServerMessage) => void): this;
+  on(event: "message", listener: (message: ServerMessage) => void): this;
   on(event: string | symbol, listener: (...args: any[]) => void): this {
     return super.on(event, listener);
   }

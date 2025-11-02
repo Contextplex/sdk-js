@@ -4,6 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 
+> 📝 See [CHANGELOG.md](./CHANGELOG.md) for version history and breaking changes.
+
 Official SDK for **ContextPlex** - realtime state synchronization and file sync for developers.
 
 ContextPlex enables seamless state sharing across development environments, making it easy to keep configuration files, environment variables, and application state synchronized across multiple machines and team members.
@@ -36,10 +38,25 @@ pnpm add @contextplex/sdk-js
 ```typescript
 import { createClient } from '@contextplex/sdk-js';
 
-// Create client (server URL configured via STATEMESH_SERVER_URL environment variable)
+// Option 1: Pass serverUrl directly (highest priority)
+const client = createClient({
+  namespace: 'my-project',
+  apiKey: 'your-api-key',
+  serverUrl: 'wss://api.contextplex.com/ws'
+});
+
+// Option 2: Use environment variable
+// export STATEMESH_SERVER_URL=wss://api.contextplex.com/ws
 const client = createClient({
   namespace: 'my-project',
   apiKey: 'your-api-key'
+});
+
+// Option 3: Use default localhost (for local development)
+const client = createClient({
+  namespace: 'my-project',
+  apiKey: 'your-api-key'
+  // Defaults to ws://localhost:8080/ws
 });
 
 // Connect to ContextPlex
@@ -116,11 +133,32 @@ Creates a new ContextPlex client instance.
 **Parameters:**
 - `options.namespace` (string, required) - Namespace identifier for state isolation
 - `options.apiKey` (string, required) - API key for authentication
+- `options.serverUrl` (string, optional) - Server WebSocket URL. If provided, overrides `STATEMESH_SERVER_URL` environment variable
+
+**Priority order for server URL:**
+1. `options.serverUrl` (if provided)
+2. `STATEMESH_SERVER_URL` environment variable
+3. Default: `ws://localhost:8080/ws`
 
 **Returns:** `StateMeshClient` instance
 
 **Example:**
 ```typescript
+// Using default/localhost
+const client = createClient({
+  namespace: 'my-project',
+  apiKey: 'my-api-key'
+});
+
+// Passing server URL directly
+const client = createClient({
+  namespace: 'my-project',
+  apiKey: 'my-api-key',
+  serverUrl: 'wss://api.contextplex.com/ws'
+});
+
+// Using environment variable
+// export STATEMESH_SERVER_URL=wss://api.contextplex.com/ws
 const client = createClient({
   namespace: 'my-project',
   apiKey: 'my-api-key'
@@ -381,11 +419,63 @@ Emitted on errors.
 
 ## Configuration
 
-### Environment Variables
+### Server URL Configuration
 
-- `STATEMESH_SERVER_URL` - ContextPlex server WebSocket URL (default: `ws://localhost:8080/ws`)
+The SDK supports three ways to configure the server URL, with the following priority order:
 
-> **Note:** The environment variable name `STATEMESH_SERVER_URL` is maintained for backward compatibility. It points to your ContextPlex server endpoint.
+1. **Pass `serverUrl` directly** (highest priority) - Overrides environment variable
+2. **Environment variable** - `STATEMESH_SERVER_URL`
+3. **Default** - `ws://localhost:8080/ws`
+
+#### Option 1: Pass serverUrl in createClient
+
+```typescript
+const client = createClient({
+  namespace: 'my-project',
+  apiKey: 'my-api-key',
+  serverUrl: 'wss://api.contextplex.com/ws' // Direct override
+});
+```
+
+#### Option 2: Environment Variable
+
+```bash
+# Set environment variable
+export STATEMESH_SERVER_URL=wss://api.contextplex.com/ws
+
+# Then use in code
+const client = createClient({
+  namespace: 'my-project',
+  apiKey: 'my-api-key'
+  // Uses STATEMESH_SERVER_URL automatically
+});
+```
+
+#### Option 3: Default (localhost)
+
+```typescript
+const client = createClient({
+  namespace: 'my-project',
+  apiKey: 'my-api-key'
+  // Defaults to ws://localhost:8080/ws
+});
+```
+
+**Protocols:**
+- Use `ws://` for unencrypted connections (development)
+- Use `wss://` for secure WebSocket connections (production)
+
+**Examples:**
+```bash
+# Local development
+ws://localhost:8080/ws
+
+# Production server
+wss://api.contextplex.com/ws
+
+# Custom server with port
+wss://your-server.com:8443/ws
+```
 
 ### Utility Functions
 

@@ -51,6 +51,8 @@ export interface StateMeshOptions {
   namespace: string;
   /** API key for authentication */
   apiKey: string;
+  /** Server WebSocket URL (overrides STATEMESH_SERVER_URL environment variable) */
+  serverUrl?: string;
 }
 
 /**
