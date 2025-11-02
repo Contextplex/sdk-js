@@ -45,6 +45,7 @@ interface SyncedFileInfo {
   type: FileType;
   prefix: string;
   path: string;
+  flatten?: boolean;
 }
 
 /**
@@ -252,7 +253,12 @@ export class FileSync extends EventEmitter {
     const flatten = config.flatten !== false;
     const fileKey = `json:${jsonPath}`;
 
-    this.syncedFiles.set(fileKey, { type: "json", prefix, path: jsonPath });
+    this.syncedFiles.set(fileKey, {
+      type: "json",
+      prefix,
+      path: jsonPath,
+      flatten,
+    });
 
     try {
       await fs.access(filePath);
@@ -450,24 +456,42 @@ export class FileSync extends EventEmitter {
     namespace: string;
     ops: StateOp[];
   }): Promise<void> {
-    if (event.namespace !== this.namespace) return;
+    if (event.namespace !== this.namespace) {
+      return;
+    }
 
     const fileChanges: Map<string, FileChanges> = new Map();
 
     for (const op of event.ops) {
       for (const [fileKey, fileInfo] of this.syncedFiles.entries()) {
-        if (op.path.startsWith(fileInfo.prefix)) {
-          const relativeKey = op.path.substring(fileInfo.prefix.length);
+        const prefixWithoutDot = fileInfo.prefix.replace(/\.$/, "");
+        const matchesPrefix =
+          op.path.startsWith(fileInfo.prefix) || op.path === prefixWithoutDot;
 
+        if (matchesPrefix) {
           if (!fileChanges.has(fileKey)) {
             fileChanges.set(fileKey, { type: fileInfo.type, changes: {} });
           }
 
           const changes = fileChanges.get(fileKey)!.changes;
-          if (op.op === "set") {
-            changes[relativeKey] = op.value;
-          } else if (op.op === "delete") {
-            changes[relativeKey] = null;
+
+          if (
+            fileInfo.type === "json" &&
+            fileInfo.flatten === false &&
+            op.path === prefixWithoutDot
+          ) {
+            if (op.op === "set" && op.value && typeof op.value === "object") {
+              const fullObject = op.value as Record<string, unknown>;
+              Object.keys(changes).forEach((key) => delete changes[key]);
+              Object.assign(changes, fullObject);
+            }
+          } else if (op.path.startsWith(fileInfo.prefix)) {
+            const relativeKey = op.path.substring(fileInfo.prefix.length);
+            if (op.op === "set") {
+              changes[relativeKey] = op.value;
+            } else if (op.op === "delete") {
+              changes[relativeKey] = null;
+            }
           }
           break;
         }
@@ -481,7 +505,12 @@ export class FileSync extends EventEmitter {
       if (type === "env") {
         await this.applyEnvChanges(filePath, changes);
       } else {
-        await this.applyJsonChanges(filePath, changes, fileInfo.prefix);
+        await this.applyJsonChanges(
+          filePath,
+          changes,
+          fileInfo.prefix,
+          fileInfo.flatten ?? true
+        );
       }
     }
   }
@@ -544,12 +573,29 @@ export class FileSync extends EventEmitter {
   private async applyJsonChanges(
     filePath: string,
     changes: Record<string, unknown>,
-    prefix: string
+    prefix: string,
+    flatten: boolean
   ): Promise<void> {
     this.isApplyingRemote = true;
     try {
       const content = await fs.readFile(filePath, "utf-8").catch(() => "{}");
-      const jsonData = JSON.parse(content) as Record<string, unknown>;
+      let jsonData = JSON.parse(content) as Record<string, unknown>;
+
+      if (!flatten) {
+        const changesStr = JSON.stringify(changes, null, 2);
+        const currentStr = JSON.stringify(jsonData, null, 2);
+
+        if (changesStr !== currentStr) {
+          jsonData = changes as Record<string, unknown>;
+          await fs.writeFile(filePath, JSON.stringify(jsonData, null, 2));
+          this.emit("synced", {
+            type: "json",
+            path: filePath,
+            direction: "mesh->local",
+          } as SyncedEvent);
+        }
+        return;
+      }
 
       let hasChanges = false;
       for (const [key, value] of Object.entries(changes)) {

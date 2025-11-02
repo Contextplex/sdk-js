@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2025-11-02
+
+### Added
+- Support for non-flattened JSON file synchronization via `flatten: false` option in `syncJsonFile()`
+- When `flatten: false`, JSON files are synced as complete objects rather than individual keys
+- Added `flatten` property to `SyncedFileInfo` interface to track flatten mode per file
+
+### Changed
+- Improved prefix matching logic to handle prefixes with or without trailing dots
+- Enhanced JSON change application to support both flattened and non-flattened modes
+- Better handling of complete object replacement for non-flattened JSON files
+
 ## [0.1.6] - 2025-11-02
 
 ### Added
