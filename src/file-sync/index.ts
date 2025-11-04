@@ -347,6 +347,9 @@ export class FileSync extends EventEmitter {
       for (const [key, value] of Object.entries(meshState)) {
         if (typeof key === "string" && key.startsWith(prefix)) {
           const envKey = key.substring(prefix.length);
+          if (envKey.startsWith("__")) {
+            continue; // ignore internal audit/meta keys
+          }
           meshEnvVars[envKey] = String(value);
         }
       }
@@ -482,6 +485,14 @@ export class FileSync extends EventEmitter {
           op.path.startsWith(fileInfo.prefix) || op.path === prefixWithoutDot;
 
         if (matchesPrefix) {
+          // Skip internal meta keys like __audit__
+          if (fileInfo.type === "env" && op.path.startsWith(fileInfo.prefix)) {
+            const rel = op.path.substring(fileInfo.prefix.length);
+            if (typeof rel === "string" && rel.startsWith("__")) {
+              continue;
+            }
+          }
+
           if (!fileChanges.has(fileKey)) {
             fileChanges.set(fileKey, { type: fileInfo.type, changes: {} });
           }
@@ -500,6 +511,9 @@ export class FileSync extends EventEmitter {
             }
           } else if (op.path.startsWith(fileInfo.prefix)) {
             const relativeKey = op.path.substring(fileInfo.prefix.length);
+            if (typeof relativeKey === "string" && relativeKey.startsWith("__")) {
+              continue; // ignore internal keys
+            }
             if (op.op === "set") {
               changes[relativeKey] = op.value;
             } else if (op.op === "delete") {
