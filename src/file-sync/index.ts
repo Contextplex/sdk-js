@@ -209,6 +209,12 @@ export class FileSync extends EventEmitter {
     watcher.on("change", async () => {
       if (this.isSyncing || this.isApplyingRemote) return;
       await this.syncEnvToMesh(filePath, prefix);
+      try {
+        await this.client.set(this.namespace, `${DEFAULT_PREFIXES.ENV}__audit__`, {
+          path: envPath,
+          changed_at: Date.now(),
+        });
+      } catch (_) {}
     });
 
     this.watchers.set(filePath, watcher);
@@ -280,6 +286,13 @@ export class FileSync extends EventEmitter {
     watcher.on("change", async () => {
       if (this.isSyncing || this.isApplyingRemote) return;
       await this.syncJsonToMesh(filePath, prefix, flatten);
+      // Emit a consolidated audit marker to ensure server-side auditing triggers
+      try {
+        await this.client.set(this.namespace, `${DEFAULT_PREFIXES.JSON}__audit__`, {
+          path: jsonPath,
+          changed_at: Date.now(),
+        });
+      } catch (_) {}
     });
 
     this.watchers.set(filePath, watcher);
