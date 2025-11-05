@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-11-04
+
+### Changed
+- Updated default server URL from `ws://localhost:8080/ws` to `wss://api.contextplex.dev/ws` for production use
+- Updated README documentation to reflect new default server URL
+
 ## [0.1.9] - 2025-11-04
 
 ### Changed

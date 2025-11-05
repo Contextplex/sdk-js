@@ -52,11 +52,11 @@ const client = createClient({
   apiKey: 'your-api-key'
 });
 
-// Option 3: Use default localhost (for local development)
+// Option 3: Use default (production server)
 const client = createClient({
   namespace: 'my-project',
   apiKey: 'your-api-key'
-  // Defaults to ws://localhost:8080/ws
+  // Defaults to wss://api.contextplex.dev/ws
 });
 
 // Connect to ContextPlex
@@ -138,7 +138,7 @@ Creates a new ContextPlex client instance.
 **Priority order for server URL:**
 1. `options.serverUrl` (if provided)
 2. `STATEMESH_SERVER_URL` environment variable
-3. Default: `ws://localhost:8080/ws`
+3. Default: `wss://api.contextplex.dev/ws`
 
 **Returns:** `StateMeshClient` instance
 
@@ -425,7 +425,7 @@ The SDK supports three ways to configure the server URL, with the following prio
 
 1. **Pass `serverUrl` directly** (highest priority) - Overrides environment variable
 2. **Environment variable** - `STATEMESH_SERVER_URL`
-3. **Default** - `ws://localhost:8080/ws`
+3. **Default** - `wss://api.contextplex.dev/ws`
 
 #### Option 1: Pass serverUrl in createClient
 
@@ -451,13 +451,13 @@ const client = createClient({
 });
 ```
 
-#### Option 3: Default (localhost)
+#### Option 3: Default (production server)
 
 ```typescript
 const client = createClient({
   namespace: 'my-project',
   apiKey: 'my-api-key'
-  // Defaults to ws://localhost:8080/ws
+  // Defaults to wss://api.contextplex.dev/ws
 });
 ```
 
