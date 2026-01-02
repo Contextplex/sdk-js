@@ -8,7 +8,7 @@
  * Can be overridden via STATEMESH_SERVER_URL environment variable
  * @public
  */
-export const DEFAULT_SERVER_URL = 'wss://api.contextplex.dev/ws';
+export const DEFAULT_SERVER_URL = 'ws://localhost:8080/ws';
 
 /**
  * Default reconnection configuration
